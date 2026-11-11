@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Тудулист с уведомлениями</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #f3f4f6;
+        margin: 0;
+        padding: 20px;
+        color: #1f2937;
+      }
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 20px;
+      }
+
+      .card {
+        background: #fff;
+        border-radius: 10px;
+        padding: 18px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        margin-bottom: 16px;
+      }
+
+      .row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .row > * {
+        flex: 1;
+        min-width: 120px;
+      }
+
+      input,
+      textarea,
+      button {
+        font: inherit;
+        padding: 9px 11px;
+        border: 1px solid #d1d5db;
+        border-radius: 7px;
+        background: #fff;
+      }
+      input:focus,
+      textarea:focus {
+        outline: 2px solid #6366f1;
+        border-color: transparent;
+      }
+      textarea {
+        resize: vertical;
+        min-height: 60px;
+        width: 100%;
+      }
+
+      button {
+        background: #6366f1;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background 0.15s;
+      }
+      button:hover {
+        background: #4f46e5;
+      }
+      button:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+      }
+      button.secondary {
+        background: #e5e7eb;
+        color: #374151;
+      }
+      button.secondary:hover {
+        background: #d1d5db;
+      }
+      button.danger {
+        background: #ef4444;
+      }
+      button.danger:hover {
+        background: #dc2626;
+      }
+      button.small {
+        padding: 5px 9px;
+        font-size: 13px;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .task {
+        background: #fff;
+        border-radius: 10px;
+        padding: 14px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+        margin-bottom: 10px;
+        border-left: 4px solid #6366f1;
+      }
+      .task.done {
+        opacity: 0.6;
+        border-left-color: #10b981;
+      }
+      .task.overdue:not(.done) {
+        border-left-color: #ef4444;
+      }
+
+      .task-title {
+        font-weight: 600;
+        font-size: 16px;
+        margin-bottom: 4px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .task-desc {
+        color: #6b7280;
+        font-size: 14px;
+        margin-bottom: 8px;
+        white-space: pre-wrap;
+      }
+      .task-meta {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        font-size: 13px;
+        color: #6b7280;
+        margin-bottom: 10px;
+      }
+      .task-meta span {
+        display: inline-flex;
+        gap: 4px;
+        align-items: center;
+      }
+      .task-actions {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .tag {
+        font-size: 11px;
+        padding: 2px 7px;
+        border-radius: 10px;
+        background: #eef2ff;
+        color: #4f46e5;
+        font-weight: 500;
+      }
+      .tag.overdue {
+        background: #fee2e2;
+        color: #dc2626;
+      }
+      .tag.done {
+        background: #d1fae5;
+        color: #059669;
+      }
+
+      .error {
+        color: #dc2626;
+        font-size: 14px;
+        margin-top: 8px;
+        min-height: 18px;
+      }
+      .muted {
+        color: #6b7280;
+        font-size: 14px;
+      }
+      .header-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .user-info {
+        font-size: 14px;
+        color: #6b7280;
+      }
+
+      .empty {
+        text-align: center;
+        color: #9ca3af;
+        padding: 30px;
+        font-size: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- ============ ЛОГИН / РЕГИСТРАЦИЯ ============ -->
+      <div id="authScreen">
+        <h1>Тудулист с уведомлениями в Telegram</h1>
+
+        <div class="card">
+          <h3 style="margin-top: 0">Вход</h3>
+          <div class="row">
+            <input
+              id="loginUsername"
+              placeholder="username"
+              autocomplete="username"
+            />
+            <input
+              id="loginPassword"
+              type="password"
+              placeholder="пароль"
+              autocomplete="current-password"
+            />
+            <button onclick="doLogin()" style="flex: 0 0 auto">Войти</button>
+          </div>
+          <div class="error" id="loginError"></div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-top: 0">Регистрация</h3>
+          <div class="row">
+            <input
+              id="regUsername"
+              placeholder="username"
+              autocomplete="username"
+            />
+            <input
+              id="regPassword"
+              type="password"
+              placeholder="пароль"
+              autocomplete="new-password"
+            />
+            <button onclick="doRegister()" style="flex: 0 0 auto">
+              Зарегистрироваться
+            </button>
+          </div>
+          <div class="error" id="regError"></div>
+        </div>
+
+        <p class="muted">
+          После регистрации напиши своему Telegram-боту:<br />
+          <code>/start твой_username</code> — чтобы получать уведомления.
+        </p>
+      </div>
+
+      <!-- ============ ГЛАВНЫЙ ЭКРАН ============ -->
+      <div id="mainScreen" class="hidden">
+        <div class="header-bar">
+          <h1 style="margin: 0">Мои задачи</h1>
+          <div class="user-info">
+            <span id="currentUser"></span>
+            <button
+              class="secondary small"
+              onclick="logout()"
+              style="margin-left: 10px"
+            >
+              Выйти
+            </button>
+          </div>
+        </div>
+
+        <!-- Создание задачи -->
+        <div class="card">
+          <h3 style="margin-top: 0">Новая задача</h3>
+          <div class="row" style="margin-bottom: 8px">
+            <input id="newTitle" placeholder="Заголовок *" style="flex: 2" />
+          </div>
+          <textarea
+            id="newDescription"
+            placeholder="Описание (опционально)"
+          ></textarea>
+          <div class="row" style="margin-top: 8px">
+            <label style="font-size: 13px; color: #6b7280">
+              Дедлайн (опционально)
+              <input
+                id="newDeadline"
+                type="datetime-local"
+                style="width: 100%; margin-top: 4px"
+              />
+            </label>
+            <label style="font-size: 13px; color: #6b7280">
+              Напомнить за (часов до дедлайна)
+              <input
+                id="newNotifyBefore"
+                type="number"
+                min="0"
+                placeholder="напр. 2"
+                style="width: 100%; margin-top: 4px"
+              />
+            </label>
+            <label style="font-size: 13px; color: #6b7280">
+              Повторять каждые (минут)
+              <input
+                id="newNotifyInterval"
+                type="number"
+                min="1"
+                placeholder="напр. 30"
+                style="width: 100%; margin-top: 4px"
+              />
+            </label>
+          </div>
+          <div style="margin-top: 10px">
+            <button onclick="createTask()">Создать задачу</button>
+          </div>
+          <div class="error" id="createError"></div>
+        </div>
+
+        <!-- Список задач -->
+        <div id="tasksList"></div>
+      </div>
+    </div>
+
+    <script>
+      // ============================================================
+      // Конфиг
+      // ============================================================
+      //   const API = "http://localhost:8000";
+      const API = "http://0.0.0.0:8000";
+
+      // ============================================================
+      // Состояние
+      // ============================================================
+      let state = {
+        user: null, // {id, username, telegram_id, ...}
+      };
+
+      // ============================================================
+      // Утилиты
+      // ============================================================
+      async function api(path, options = {}) {
+        const res = await fetch(API + path, {
+          headers: { "Content-Type": "application/json" },
+          ...options,
+        });
+        let data = null;
+        try {
+          data = await res.json();
+        } catch (_) {}
+        if (!res.ok) {
+          const msg =
+            (data && (data.detail || data.message)) || `HTTP ${res.status}`;
+          throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+        }
+        return data;
+      }
+
+      function escapeHtml(s) {
+        if (s == null) return "";
+        return String(s)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;");
+      }
+
+      function fmtDate(iso) {
+        if (!iso) return "—";
+        const d = new Date(iso);
+        if (isNaN(d)) return "—";
+        return d.toLocaleString("ru-RU", {
+          dateStyle: "short",
+          timeStyle: "short",
+        });
+      }
+
+      function isOverdue(task) {
+        return (
+          task.deadline && !task.is_done && new Date(task.deadline) < new Date()
+        );
+      }
+
+      // ============================================================
+      // Авторизация
+      // ============================================================
+      async function doLogin() {
+        const username = document.getElementById("loginUsername").value.trim();
+        const password = document.getElementById("loginPassword").value;
+        const errEl = document.getElementById("loginError");
+        errEl.textContent = "";
+        if (!username || !password) {
+          errEl.textContent = "Введи логин и пароль";
+          return;
+        }
+        try {
+          const user = await api("/users/login", {
+            method: "POST",
+            body: JSON.stringify({ username, password }),
+          });
+          onLoggedIn(user);
+        } catch (e) {
+          errEl.textContent = e.message;
+        }
+      }
+
+      async function doRegister() {
+        const username = document.getElementById("regUsername").value.trim();
+        const password = document.getElementById("regPassword").value;
+        const errEl = document.getElementById("regError");
+        errEl.textContent = "";
+        if (!username || !password) {
+          errEl.textContent = "Введи логин и пароль";
+          return;
+        }
+        try {
+          await api("/users/register", {
+            method: "POST",
+            body: JSON.stringify({ username, password }),
+          });
+          // сразу логиним
+          const user = await api("/users/login", {
+            method: "POST",
+            body: JSON.stringify({ username, password }),
+          });
+          onLoggedIn(user);
+        } catch (e) {
+          errEl.textContent = e.message;
+        }
+      }
+
+      function onLoggedIn(user) {
+        state.user = user;
+        localStorage.setItem("todo_user", JSON.stringify(user));
+        document.getElementById("authScreen").classList.add("hidden");
+        document.getElementById("mainScreen").classList.remove("hidden");
+        document.getElementById("currentUser").textContent =
+          "@" + user.username;
+        loadTasks();
+      }
+
+      function logout() {
+        state.user = null;
+        localStorage.removeItem("todo_user");
+        document.getElementById("mainScreen").classList.add("hidden");
+        document.getElementById("authScreen").classList.remove("hidden");
+      }
+
+      // ============================================================
+      // Задачи
+      // ============================================================
+      async function loadTasks() {
+        if (!state.user) return;
+        try {
+          const tasks = await api(`/users/${state.user.id}/tasks`);
+          renderTasks(tasks);
+        } catch (e) {
+          document.getElementById("tasksList").innerHTML =
+            `<div class="empty">Ошибка загрузки: ${escapeHtml(e.message)}</div>`;
+        }
+      }
+
+      function renderTasks(tasks) {
+        const container = document.getElementById("tasksList");
+        if (!tasks.length) {
+          container.innerHTML = `<div class="empty">Пока задач нет. Создай первую 👆</div>`;
+          return;
+        }
+        container.innerHTML = tasks.map(renderTask).join("");
+      }
+
+      function renderTask(t) {
+        const overdue = isOverdue(t);
+        const classes = ["task"];
+        if (t.is_done) classes.push("done");
+        if (overdue) classes.push("overdue");
+
+        let deadlineTag = "";
+        if (t.deadline) {
+          if (t.is_done)
+            deadlineTag = `<span class="tag done">выполнено</span>`;
+          else if (overdue)
+            deadlineTag = `<span class="tag overdue">просрочено</span>`;
+        }
+
+        const notifyParts = [];
+        if (t.notify_before_hours != null)
+          notifyParts.push(`за ${t.notify_before_hours} ч до дедлайна`);
+        if (t.notify_interval_minutes != null)
+          notifyParts.push(`каждые ${t.notify_interval_minutes} мин`);
+
+        return `
+        <div class="${classes.join(" ")}">
+          <div class="task-title">
+            ${escapeHtml(t.title)} ${deadlineTag}
+          </div>
+          ${t.description ? `<div class="task-desc">${escapeHtml(t.description)}</div>` : ""}
+          <div class="task-meta">
+            ${t.deadline ? `<span>🗓 ${fmtDate(t.deadline)}</span>` : `<span>🗓 без дедлайна</span>`}
+            ${notifyParts.length ? `<span>🔔 ${escapeHtml(notifyParts.join(", "))}</span>` : `<span>🔕 без уведомлений</span>`}
+            ${t.next_notify_at ? `<span>⏰ след. ${fmtDate(t.next_notify_at)}</span>` : ""}
+          </div>
+          <div class="task-actions">
+            ${
+              !t.is_done
+                ? `<button class="small" onclick="markDone('${t.id}')">✅ Выполнено</button>`
+                : `<button class="small secondary" onclick="markUndone('${t.id}')">↩️ Вернуть</button>`
+            }
+            <button class="small secondary" onclick="editTask('${t.id}')">✏️ Редактировать</button>
+            <button class="small danger" onclick="deleteTask('${t.id}')">🗑 Удалить</button>
+          </div>
+        </div>
+      `;
+      }
+
+      // ============================================================
+      // CRUD задач
+      // ============================================================
+      async function createTask() {
+        const errEl = document.getElementById("createError");
+        errEl.textContent = "";
+
+        const title = document.getElementById("newTitle").value.trim();
+        if (!title) {
+          errEl.textContent = "Заголовок обязателен";
+          return;
+        }
+
+        const description =
+          document.getElementById("newDescription").value.trim() || null;
+        const deadlineRaw = document.getElementById("newDeadline").value;
+        const deadline = deadlineRaw
+          ? new Date(deadlineRaw).toISOString()
+          : null;
+
+        const beforeRaw = document
+          .getElementById("newNotifyBefore")
+          .value.trim();
+        const notifyBefore = beforeRaw === "" ? null : parseInt(beforeRaw, 10);
+
+        const intervalRaw = document
+          .getElementById("newNotifyInterval")
+          .value.trim();
+        const notifyInterval =
+          intervalRaw === "" ? null : parseInt(intervalRaw, 10);
+
+        if (notifyBefore != null && (isNaN(notifyBefore) || notifyBefore < 0)) {
+          errEl.textContent = "Некорректное «за сколько часов»";
+          return;
+        }
+        if (
+          notifyInterval != null &&
+          (isNaN(notifyInterval) || notifyInterval < 1)
+        ) {
+          errEl.textContent = "Интервал должен быть ≥ 1 минуты";
+          return;
+        }
+        if (
+          (notifyBefore != null || notifyInterval != null) &&
+          !deadline &&
+          notifyInterval == null
+        ) {
+          errEl.textContent = "Уведомление «за N часов» требует дедлайн";
+          return;
+        }
+
+        try {
+          await api("/tasks", {
+            method: "POST",
+            body: JSON.stringify({
+              user_id: state.user.id,
+              title,
+              description,
+              deadline,
+              notify_before_hours: notifyBefore,
+              notify_interval_minutes: notifyInterval,
+            }),
+          });
+          // очистка формы
+          document.getElementById("newTitle").value = "";
+          document.getElementById("newDescription").value = "";
+          document.getElementById("newDeadline").value = "";
+          document.getElementById("newNotifyBefore").value = "";
+          document.getElementById("newNotifyInterval").value = "";
+          loadTasks();
+        } catch (e) {
+          errEl.textContent = e.message;
+        }
+      }
+
+      async function markDone(id) {
+        try {
+          await api(`/tasks/${id}`, {
+            method: "PATCH",
+            body: JSON.stringify({ is_done: true }),
+          });
+          loadTasks();
+        } catch (e) {
+          alert("Ошибка: " + e.message);
+        }
+      }
+
+      async function markUndone(id) {
+        try {
+          await api(`/tasks/${id}`, {
+            method: "PATCH",
+            body: JSON.stringify({ is_done: false }),
+          });
+          loadTasks();
+        } catch (e) {
+          alert("Ошибка: " + e.message);
+        }
+      }
+
+      async function deleteTask(id) {
+        if (!confirm("Удалить задачу?")) return;
+        try {
+          await api(`/tasks/${id}`, { method: "DELETE" });
+          loadTasks();
+        } catch (e) {
+          alert("Ошибка: " + e.message);
+        }
+      }
+
+      // ============================================================
+      // Редактирование (простое: prompt по полям)
+      // ============================================================
+      async function editTask(id) {
+        // грузим задачи, чтобы взять актуальную
+        const tasks = await api(`/users/${state.user.id}/tasks`);
+        const t = tasks.find((x) => x.id === id);
+        if (!t) return;
+
+        const title = prompt("Заголовок:", t.title);
+        if (title === null) return;
+        const description = prompt("Описание:", t.description || "");
+        if (description === null) return;
+
+        const deadlineStr = prompt(
+          "Дедлайн (ISO, например 2026-11-11T12:00):",
+          t.deadline ? t.deadline.replace("Z", "").slice(0, 16) : "",
+        );
+        if (deadlineStr === null) return;
+
+        const beforeStr = prompt(
+          "Напомнить за N часов (пусто = убрать):",
+          t.notify_before_hours != null ? t.notify_before_hours : "",
+        );
+        if (beforeStr === null) return;
+
+        const intervalStr = prompt(
+          "Повторять каждые N минут (пусто = убрать):",
+          t.notify_interval_minutes != null ? t.notify_interval_minutes : "",
+        );
+        if (intervalStr === null) return;
+
+        const payload = {};
+        if (title.trim()) payload.title = title.trim();
+        payload.description = description.trim() || null;
+        payload.deadline = deadlineStr.trim()
+          ? new Date(deadlineStr).toISOString()
+          : null;
+        payload.notify_before_hours =
+          beforeStr.trim() === "" ? null : parseInt(beforeStr, 10);
+        payload.notify_interval_minutes =
+          intervalStr.trim() === "" ? null : parseInt(intervalStr, 10);
+
+        try {
+          await api(`/tasks/${id}`, {
+            method: "PATCH",
+            body: JSON.stringify(payload),
+          });
+          loadTasks();
+        } catch (e) {
+          alert("Ошибка: " + e.message);
+        }
+      }
+
+      // ============================================================
+      // Автовосстановление сессии + автообновление
+      // ============================================================
+      (function init() {
+        const saved = localStorage.getItem("todo_user");
+        if (saved) {
+          try {
+            onLoggedIn(JSON.parse(saved));
+          } catch (_) {}
+        }
+        // автообновление раз в 30 сек, если залогинен
+        setInterval(() => {
+          if (
+            state.user &&
+            !document.getElementById("mainScreen").classList.contains("hidden")
+          ) {
+            loadTasks();
+          }
+        }, 30000);
+      })();
+    </script>
+  </body>
+</html>
